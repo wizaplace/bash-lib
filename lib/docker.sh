@@ -48,7 +48,7 @@ function check_docker_compose() {
 }
 
 function check_jq() {
-    if [[ "$(which jq1)" == "" ]]; then
+    if [[ "$(which jq)" == "" ]]; then
         echo -e "${RED}Requirement: need 'jq' try 'sudo apt install jq' ."
         exit 1
     fi
