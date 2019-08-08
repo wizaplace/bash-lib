@@ -20,7 +20,7 @@ function check_requirements() {
     check_jq
 }
 
-function check_version () {
+function check_version() {
     local version=$1
     local require_version=$2
     local package=$3
