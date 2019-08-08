@@ -26,7 +26,7 @@ function check_version () {
     local package=$3
 
     dpkg --compare-versions ${version} 'ge' ${require_version} \
-        || (echo -e "${RED}Requirement: need '${package}:${require_version}', you are '${package}:${version}'." && exit 1)
+        || (echo -e "${RED}Requirement: need '${package}:${require_version}', you have '${package}:${version}'." && exit 1)
 }
 
 function check_docker() {
