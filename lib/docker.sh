@@ -44,7 +44,7 @@ function check_docker_compose() {
         exit 1
     fi
 
-    check_version $(docker-compose -v | sed 's/,//'| awk '{print $3}') ${DOCKER_COMPOSE_MINIMAL_VERSION} 'docker-compose'
+    check_version $(docker-compose -v | sed -r 's/.* version ([^,]+),.*/\1/') ${DOCKER_COMPOSE_MINIMAL_VERSION} 'docker-compose'
 }
 
 function check_jq() {
