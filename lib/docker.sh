@@ -35,7 +35,7 @@ function check_docker() {
         exit 1
     fi
 
-    check_version $(docker -v | sed 's/,//'| awk '{print $3}') ${DOCKER_MINIMAL_VERSION} 'docker'
+    check_version $(docker -v | sed -r 's/.* version ([^,]+),.*/\1/') ${DOCKER_MINIMAL_VERSION} 'docker'
 }
 
 function check_docker_compose() {
