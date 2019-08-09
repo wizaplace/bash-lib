@@ -99,13 +99,13 @@ function check_docker_environment() {
 
 function docker_compose_configure_env() {
     local directory=$1
-    local env_file="${1}/.env"
-    local env_dist_file="${1}/.env.dist"
+    local env_file="${directory}/.env"
+    local env_dist_file="${directory}/.env.dist"
 
     if [[ -f ${env_dist_file} ]]; then
-        for line in $(cat ${env_dist_file}); do
+        while read line line; do
             configure_env_value ${env_file} $(echo ${line} | cut -d '=' -f 1) $(echo ${line} | cut -d '=' -f 2-)
-        done
+        done < ${env_dist_file}
     fi
 }
 
@@ -180,7 +180,7 @@ function docker_compose_build() {
 
 function docker_compose_up() {
     local directory=$1
-    local options=${2}
+    local options=$2
     local current_directory=$(pwd)
 
     cd ${directory}
