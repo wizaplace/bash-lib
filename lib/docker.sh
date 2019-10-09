@@ -26,12 +26,12 @@ function check_version() {
     local package=$3
 
     dpkg --compare-versions ${version} 'ge' ${require_version} \
-        || (echo -e "${RED}Requirement: need '${package}:${require_version}', you have '${package}:${version}'." && exit 1)
+        || (echo -e "${RED}Requirement: need '${package}:${require_version}', you have '${package}:${version}'.${RESET}" > /dev/tty && exit 1)
 }
 
 function check_docker() {
     if [[ "$(which docker)" == "" ]]; then
-        echo -e "${RED}Requirement: need 'docker:${DOCKER_MINIMAL_VERSION}' see https://docs.docker.com/install/linux/docker-ce/ubuntu ."
+        echo -e "${RED}Requirement: need 'docker:${DOCKER_MINIMAL_VERSION}' see https://docs.docker.com/install/linux/docker-ce/ubuntu .${RESET}" > /dev/tty
         exit 1
     fi
 
@@ -40,7 +40,7 @@ function check_docker() {
 
 function check_docker_compose() {
     if [[ "$(which docker-compose)" == "" ]]; then
-        echo -e "${RED}Requirement: need 'docker-compose:${DOCKER_COMPOSE_MINIMAL_VERSION}' see https://docs.docker.com/compose/install ."
+        echo -e "${RED}Requirement: need 'docker-compose:${DOCKER_COMPOSE_MINIMAL_VERSION}' see https://docs.docker.com/compose/install .${RESET}" > /dev/tty
         exit 1
     fi
 
@@ -49,7 +49,7 @@ function check_docker_compose() {
 
 function check_jq() {
     if [[ "$(which jq)" == "" ]]; then
-        echo -e "${RED}Requirement: need 'jq' try 'sudo apt install jq'."
+        echo -e "${RED}Requirement: need 'jq' try 'sudo apt install jq'.${RESET}" > /dev/tty
         exit 1
     fi
 }
@@ -57,13 +57,24 @@ function check_jq() {
 function ask_value() {
     local message=$1
     local default_value=$2
+    local count=${3:-0}
     local value
+    local default_value_message=''
 
-    read -p "${message}" value
+    if [[ ${count} -ge 3 ]]; then
+        exit 1
+    fi
+
+    if [[ ! -z ${default_value} ]]; then
+        default_value_message=" (default: ${YELLOW}${default_value}${CYAN})"
+    fi
+
+    echo -e "${CYAN}${message}${default_value_message}: ${RESET}" > /dev/tty
+    read value < /dev/tty
 
     if [[ -z ${value} ]]; then
         if [[ -z ${default_value} ]]; then
-            value=$(ask_value "${message}" ${default_value})
+            value=$(ask_value "${message}" '' $(( ${count} +1 )))
         else
             value="${default_value}"
         fi
@@ -76,7 +87,7 @@ function get_docker_environment() {
     local env=${ENV}
 
     if [[ -z ${env} ]]; then
-        env=$(ask_value 'Choose the docker environment (default: dev): ' dev)
+        env=$(ask_value 'Choose the docker environment' dev)
     fi
 
     echo ${env}
@@ -87,12 +98,12 @@ function check_docker_environment() {
     local env=$2
 
     if [[ ! -d ${directory}/${env} ]]; then
-        echo -e "${RED}The environment '${env}' does not exit."
+        echo -e "${RED}The environment '${env}' does not exit.${RESET}" > /dev/tty
         exit 1
     fi
 
     if [[ ! -f ${directory}/${env}/docker-compose.yml ]]; then
-        echo -e "${RED}The environment '${env}' does not contain file 'docker-compose.yml'."
+        echo -e "${RED}The environment '${env}' does not contain file 'docker-compose.yml'.${RESET}" > /dev/tty
         exit 1
     fi
 }
@@ -103,8 +114,8 @@ function docker_compose_configure_env() {
     local env_dist_file="${directory}/.env.dist"
 
     if [[ -f ${env_dist_file} ]]; then
-        while read line line; do
-            configure_env_value ${env_file} $(echo ${line} | cut -d '=' -f 1) $(echo ${line} | cut -d '=' -f 2-)
+        while read line; do
+            configure_env_value ${env_file} "$(echo ${line} | cut -d '=' -f 1)" "$(echo ${line} | cut -d '=' -f 2-)"
         done < ${env_dist_file}
     fi
 }
@@ -119,11 +130,17 @@ function configure_env_value() {
         touch ${env_file}
     fi
 
-    value=$(get_compute_env_value ${key} ${default_value})
+    value=$(get_compute_env_value "${key}" "${default_value}")
 
     if [[ -z ${value} ]]; then
         if [[ "$(grep -Ec "^${key}=" ${env_file})" -eq 0 ]]; then
-            value=$(ask_value "Define the value of ${key} (default: ${default_value}): " ${default_value})
+            value=$(ask_value "Define the value of ${key}" "${default_value}")
+
+            if [[ -z ${value} ]]; then
+                 echo -e "${RED}No value provide for key ${key}.${RESET}" > /dev/tty
+                exit 1
+            fi
+
         else
             value=$(awk -F "${key} *= *" '{print $2}' ${env_file})
         fi
@@ -152,7 +169,7 @@ function get_compute_env_value() {
         DOCKER_UID)
             value=$(id -u)
         ;;
-        XDEBUG_REMOTE_HOST)
+        DOCKER_BRIDGE_IP|XDEBUG_REMOTE_HOST)
             value=$(docker network inspect bridge | jq -r '.[].IPAM.Config | first | .Gateway')
         ;;
     esac
