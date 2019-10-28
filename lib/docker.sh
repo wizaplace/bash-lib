@@ -115,6 +115,9 @@ function docker_compose_configure_env() {
 
     if [[ -f ${env_dist_file} ]]; then
         while read line; do
+            if [[ -z ${line} ]]; then
+                continue
+            fi
             configure_env_value ${env_file} "$(echo ${line} | cut -d '=' -f 1)" "$(echo ${line} | cut -d '=' -f 2-)"
         done < ${env_dist_file}
     fi
